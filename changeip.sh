@@ -7,6 +7,30 @@ OLD_IP="192.168.1.1"
 NEW_IP="192.168.50.1"
 ROUTER_SCRIPT_PATH="/root/change_gateway.sh"
 
+echo "[Pre-check] Verifying WiFi connection and gateway..."
+
+# Check if connected to WiFi
+WIFI_STATUS=$(termux-wifi-connectioninfo 2>/dev/null | grep -o '"supplicant_state":"COMPLETED"')
+if [ -z "$WIFI_STATUS" ]; then
+  echo "❌ Not connected to WiFi. Please connect to your router's WiFi first."
+  exit 1
+fi
+
+# Check default gateway
+GATEWAY=$(ip route | grep default | awk '{print $3}' | head -n 1)
+if [ -z "$GATEWAY" ]; then
+  echo "❌ No default gateway found. Check your network connection."
+  exit 1
+fi
+
+if [ "$GATEWAY" != "$OLD_IP" ]; then
+  echo "❌ Default gateway is $GATEWAY, but expected $OLD_IP"
+  echo "   Please connect to the router with IP $OLD_IP"
+  exit 1
+fi
+
+echo "✅ Connected to WiFi with gateway $GATEWAY"
+
 echo "[1/5] Creating remote script..."
 cat > /tmp/change_gateway.sh <<INNER
 #!/bin/sh
